@@ -85,6 +85,43 @@ def elem(x1,x2,nodes,order,f,k,c,b):
     
     return ke,fe
 
+def plot_sol(u,x,p):
+    xh = 0
+    uh = 0
+    du = 0
+    if(p == 2):
+        for j in range(len(x)-2):
+            aux1 = numpy.array([x[j],x[j+1],x[j+2]])
+            aux2 = numpy.array([u[j],u[j+1],u[j+2]])
+            a = numpy.polyfit(aux1,aux2,p)
+            xa = numpy.linspace(x[j],x[j+2],100)
+            xh = numpy.hstack((xh,xa))
+            uh = numpy.hstack((uh,a[2]*xa*xa + a[1]*xa + a[0]))
+            du = numpy.hstack((du,2*a[2]*xa + a[1]))
+    elif(p == 1):
+        for j in range(len(x)-1):
+            aux1 = numpy.array([x[j],x[j+1]])
+            aux2 = numpy.array([u[j],u[j+1]])
+            a = numpy.polyfit(aux1,aux2,p)
+            xa = numpy.linspace(x[j],x[j+1],100)
+            xh = numpy.hstack((xh,xa))
+            uh = numpy.hstack((uh,a[1]*xa + a[0]))
+            du = numpy.hstack((du,a[1]*numpy.ones((len(xa)))))
+    elif(p == 3):
+        for j in range(len(x)-3):
+            aux1 = numpy.array([x[j],x[j+1],x[j+2],x[j+3]])
+            aux2 = numpy.array([u[j],u[j+1],u[j+2],u[j+3]])
+            a = numpy.polyfit(aux1,aux2,p)
+            xa = numpy.linspace(x[j],x[j+3],100)
+            xh = numpy.hstack((xh,xa))
+            uh = numpy.hstack((uh,a[3]*xa**3 + a[2]*xa*xa + a[1]*xa + a[0]))
+            du = numpy.hstack((du,3*a[3]*xa*xa + 2*a[2]*xa + a[1]))
+    xh = xh[1:]
+    uh = uh[1:]
+    du = du[1:]
+
+    return xh, uh, du
+
 # main
 c = lambda x: 0
 b = lambda x: 1
