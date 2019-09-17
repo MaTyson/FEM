@@ -1,9 +1,12 @@
 import numpy
 import matplotlib.pyplot as plt 
 from numpy.linalg import solve
+import sys
 numpy.set_printoptions(linewidth=numpy.inf)
 
 def quadrature(order):
+# gaussian quadrature
+
     xl = numpy.zeros((4,4))
     w = numpy.zeros((4,4))
 
@@ -38,7 +41,9 @@ def quadrature(order):
     return xl[:,order-1],w[:,order-1]
 
 def shape(x,nodes):
-    n = x.size
+# basis functions
+
+    n = len(x)
     if(nodes == 2):
         # linear
         phi = numpy.zeros((2,n))
@@ -65,13 +70,15 @@ def shape(x,nodes):
         phi[2,:] = (27./16)*(1-x**2)*(1./3 + x)
         phi[3,:] = (1./9 -x*x)*(x+1)*(-9./16)
         dphi[0,:] = (-9./16)*(3*x*x-2*x-1./9)
-        dphi[1,:] = (27./16)*(3*x*x-2./3*x-1)
-        dphi[2,:] = (27./16)*(-3*x*x-2./3*x+1)
+        dphi[1,:] = (27./16)*(3*x*x-(2./3)*x-1)
+        dphi[2,:] = (27./16)*(-3*x*x-(2./3)*x+1)
         dphi[3,:] = (-9./16)*(-3*x*x-2*x+1./9)
 
     return phi,dphi
 
 def elem(x1,x2,nodes,order,f,k,c,b):
+# local stiffness matrix
+
     fe = numpy.zeros((nodes,))
     ke = numpy.zeros((nodes,nodes))
     dx = (x2-x1)/2.
@@ -86,18 +93,20 @@ def elem(x1,x2,nodes,order,f,k,c,b):
     return ke,fe
 
 def plot_sol(u,x,p):
+# approx solutions
+
     xh = 0
     uh = 0
     du = 0
     if(p == 2):
-        for j in range(len(x)-2):
+        for j in range(0,len(x)-2,2):
             aux1 = numpy.array([x[j],x[j+1],x[j+2]])
             aux2 = numpy.array([u[j],u[j+1],u[j+2]])
             a = numpy.polyfit(aux1,aux2,p)
-            xa = numpy.linspace(x[j],x[j+2],100)
+            xa = numpy.linspace(x[j],x[j+2],10)
             xh = numpy.hstack((xh,xa))
-            uh = numpy.hstack((uh,a[2]*xa*xa + a[1]*xa + a[0]))
-            du = numpy.hstack((du,2*a[2]*xa + a[1]))
+            uh = numpy.hstack((uh,a[0]*xa*xa + a[1]*xa + a[2]))
+            du = numpy.hstack((du,2*a[0]*xa + a[1]))
     elif(p == 1):
         for j in range(len(x)-1):
             aux1 = numpy.array([x[j],x[j+1]])
@@ -105,35 +114,44 @@ def plot_sol(u,x,p):
             a = numpy.polyfit(aux1,aux2,p)
             xa = numpy.linspace(x[j],x[j+1],100)
             xh = numpy.hstack((xh,xa))
-            uh = numpy.hstack((uh,a[1]*xa + a[0]))
-            du = numpy.hstack((du,a[1]*numpy.ones((len(xa)))))
+            uh = numpy.hstack((uh,a[0]*xa + a[1]))
+            du = numpy.hstack((du,a[0]*numpy.ones((len(xa)))))
     elif(p == 3):
-        for j in range(len(x)-3):
+        for j in range(0,len(x)-3,3):
             aux1 = numpy.array([x[j],x[j+1],x[j+2],x[j+3]])
             aux2 = numpy.array([u[j],u[j+1],u[j+2],u[j+3]])
             a = numpy.polyfit(aux1,aux2,p)
             xa = numpy.linspace(x[j],x[j+3],100)
             xh = numpy.hstack((xh,xa))
-            uh = numpy.hstack((uh,a[3]*xa**3 + a[2]*xa*xa + a[1]*xa + a[0]))
-            du = numpy.hstack((du,3*a[3]*xa*xa + 2*a[2]*xa + a[1]))
-    xh = xh[1:]
-    uh = uh[1:]
-    du = du[1:]
+            uh = numpy.hstack((uh,a[0]*xa**3 + a[1]*xa*xa + a[2]*xa + a[3]))
+            du = numpy.hstack((du,3*a[0]*xa*xa + 2*a[1]*xa + a[2]))
 
-    return xh, uh, du
+    return xh[1:], uh[1:], du[1:]
 
 # main
+# exact solution
+v = lambda x:x - numpy.sinh(x)/numpy.sinh(1.)
+dv = lambda x:1 - numpy.cosh(x)/numpy.sinh(1.)
+
+# set parameters of equation
 c = lambda x: 0
 b = lambda x: 1
 kappa = lambda x: 1
 source = lambda x: x
-enodes = 3
+
+# set parameters of fem
+# element nodes, order of quadrature, grid nodes
+# number of elements, element h, size of stiffness matrix 
+
+enodes = 2
 band = enodes - 1
-order = 2
-nnode = 5
-nelem = 4
+order = 1
+nnode = 10
+nelem = nnode -1
 he = 1./(nnode-1)
 size = band*nelem+1
+
+# stiffness matrix generation
 K = numpy.zeros((size,size))
 F = numpy.zeros((size,))
 xi = 0
@@ -144,13 +162,26 @@ for i in range(nelem):
         for l in range(enodes):
             K[i*band + j,i*band + l] += k[j,l]
     xi +=he
+
+# forcing boundaries    
 K[0,:] = numpy.eye(size)[0,:]
 K[:,0] = numpy.eye(size)[:,0]
 K[-1,:] = numpy.eye(size)[-1,:]
 K[:,-1] = numpy.eye(size)[:,-1]
 F[0] = F[-1] = 0
+
+# solving system
 u = solve(K,F)
-print(k,f)
-print('\n',K)
-print(F)
-print(u)
+# print(k,f)
+# print('\n',K)
+# print(F)
+# print(K.shape)
+# print(u)
+
+# plot solutions
+x = numpy.linspace(0,1,size)
+xv = numpy.linspace(0,1,100)
+xh, uh, du = plot_sol(u,x,band)
+# print(uh)
+plt.subplot(1,2,2);plt.plot(xh,du,label='approx du');plt.plot(xv,dv(xv),'m--',label='exact');plt.legend()
+plt.subplot(1,2,1);plt.plot(xh,uh,label='approx solution');plt.plot(xv,v(xv),'m--',label='exact');plt.legend();plt.show()
