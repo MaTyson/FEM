@@ -163,12 +163,15 @@ for i in range(nelem):
             K[i*band + j,i*band + l] += k[j,l]
     xi +=he
 
-# forcing boundaries    
+# forcing Dirichlet boundaries    
+u0 = 0
+u1 = 0
 K[0,:] = numpy.eye(size)[0,:]
-K[:,0] = numpy.eye(size)[:,0]
+# K[:,0] = numpy.eye(size)[:,0]
 K[-1,:] = numpy.eye(size)[-1,:]
-K[:,-1] = numpy.eye(size)[:,-1]
-F[0] = F[-1] = 0
+# K[:,-1] = numpy.eye(size)[:,-1]
+F[0] = u0
+F[-1] = u1
 
 # solving system
 u = solve(K,F)
